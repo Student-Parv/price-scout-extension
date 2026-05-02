@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "Value Sorter (IN)",
+  "version": "0.3.0",
+  "description": "Sort e-commerce search results by price per 100g / 100ml. Works on Amazon.in, Flipkart, Myntra, Meesho, Nykaa, BigBasket, Snapdeal & Zepto.",
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Value Sorter"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://www.amazon.in/s*",
+        "*://www.flipkart.com/search*",
+        "*://www.myntra.com/*",
+        "*://www.meesho.com/*",
+        "*://www.nykaa.com/*",
+        "*://www.bigbasket.com/*",
+        "*://www.snapdeal.com/*",
+        "*://www.zepto.com/*"
+      ],
+      "js": ["content.js"],
+      "css": ["styles.css"]
+    }
+  ],
+  "permissions": []
+}
