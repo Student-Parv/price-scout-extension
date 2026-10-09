@@ -44,6 +44,14 @@ describe('analyzeCard', () => {
     expect(a.note).toContain('Title says');
   });
 
+  it('does not flag the same number in ml and g as a disagreement (1 ml = 1 g)', () => {
+    const a = analyzeCard(card({
+      title: 'Sun cream 50 ml', priceText: '₹1050', unitPriceText: '(₹2100₹2100/100 g)',
+    }));
+    expect(a.quantity!.value).toBeCloseTo(50, 2);
+    expect(a.note).toBeNull();
+  });
+
   it('is unknown when no quantity can be read', () => {
     const a = analyzeCard(card({ title: 'Pringles', priceText: '₹120' }));
     expect(a.state).toBe('unknown');

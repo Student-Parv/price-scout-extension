@@ -31,6 +31,8 @@ const KNOWN: Case[] = [
   ['Surf Excel 1 kg (Pack of 1)', 1000, 'mass'],
   ['Soap 3 x 75 g Pack of 3', 225, 'mass'],
   ['4 x 26.75 g', 107, 'mass'],
+  ['Homemade Ready to Fry Dry Potato Chips | Especially for Fasting, Snacks | Pack of 900 Grams', 900, 'mass'],
+  ['Set of 250 ml bottle', 250, 'volume'],
   ['1.2 L', 1200, 'volume'],
   ['SPF 50 - 100 ml', 100, 'volume'],
   ['Shampoo 200 millilitres', 200, 'volume'],

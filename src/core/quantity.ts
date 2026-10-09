@@ -20,8 +20,12 @@ const RANGE_RE = new RegExp(
     `|${NUM_PATTERN}-${NUM_PATTERN}\\s*(?:${UNIT_PATTERN})\\b)`,
   'i',
 );
-const PACK_RE =
-  /\b(?:pack of|set of|combo of)\s*(\d{1,3})\b|\b(\d{1,3})\s*(?:-\s*)?(?:pack|packs|pcs|pieces|units|count)\b/i;
+/** "Pack of 3" is a count, but "Pack of 900 Grams" is a weight: the number must not be followed by a unit. */
+const PACK_RE = new RegExp(
+  `\\b(?:pack of|set of|combo of)\\s*(\\d{1,3})\\b(?!\\s*(?:${UNIT_PATTERN})\\b)` +
+    '|\\b(\\d{1,3})\\s*(?:-\\s*)?(?:pack|packs|pcs|pieces|units|count)\\b',
+  'i',
+);
 
 interface Part {
   value: number;

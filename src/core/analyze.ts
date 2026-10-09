@@ -5,8 +5,9 @@ import { parseUnitPrice, quantityFromUnitPrice } from './unitprice';
 
 const DISAGREE = 0.03;
 
+/** Ranking treats 1 ml as 1 g, so the same number in ml and g is not a disagreement. */
 function agree(a: Quantity, b: Quantity): boolean {
-  return a.dim === b.dim && Math.abs(a.value - b.value) <= DISAGREE * Math.max(a.value, b.value);
+  return Math.abs(a.value - b.value) <= DISAGREE * Math.max(a.value, b.value);
 }
 
 export function analyzeCard(raw: RawCard): CardAnalysis {
