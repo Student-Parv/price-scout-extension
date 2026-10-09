@@ -89,13 +89,17 @@ interface SiteAdapter {
 1. `main` picks the adapter for the URL and stops if `isListingPage` is false.
 2. `observer` watches the container (falling back to `body`) with a debounced `MutationObserver` (about 250 ms) and re-checks `location.href` on each tick and on `popstate`, so client-side navigation re-initialises.
 3. `scan` handles only cards not yet seen (tracked with a `WeakSet`, not by re-parsing everything on every scroll).
-4. Per card: `adapter.extract`, then `parsePrice`, then `parseQuantity` on title, then on card text, then (if still unknown and under budget) `fallback` fetches the product page.
+4. Per card: `adapter.extract`, then `parsePrice`, then the quantity from, in order, the site's own unit price, the site's dedicated size text (Flipkart `30 g`, `4 x 102 g`), and the title; then (if still unknown and under budget) `fallback` fetches the product page. Whole-card text is not parsed: it contains the unit-price string `/100 g`, which would be misread as a 100 g pack.
 5. `computeUnitPrice` gives ₹ per 100 of the canonical unit; `badge` renders it.
 6. If a sort is active, the card is placed into the current order. The toolbar button toggles ascending, descending and reset.
 
+Verified 2026-10-09 (headless Brave, live pages): Flipkart paginates with page links (`page=2`), not infinite scroll: scrolling did not add cards (40 before and after). Amazon is likewise paginated. The observer still handles late renders and client-side navigation.
+
 ## 6. Quantity parser
 
-Input: free text (title, then card text). Output: `{ value, dim, confidence, source, explanation }` or `Unknown`.
+Input: free text (the site's size line, then the title). Output: `{ value, dim, confidence, source, explanation }` or `Unknown`.
+
+**Site unit price (checked first).** Amazon.in prints `(₹746.67/100 g)` on about 95% of priced cards (verified 2026-10-09 on six queries: 45/48, 39/39, 36/36, 48/48, 45/46 and 48/48 priced cards). When present, quantity = selling price ÷ unit price × per-amount. It wins over title text; if the two disagree by more than 3% the badge tooltip shows both. Count- and month-based unit prices (`/count`) are ignored.
 
 - `value` is canonical: grams for mass, millilitres for volume. `dim` is `mass` or `volume`.
 - `explanation` is the human-readable maths shown in the badge tooltip, for example `2 × 100 g = 200 g`.
@@ -106,12 +110,13 @@ Units recognised (case-insensitive, with optional plural and trailing dot):
 |---|---|
 | g | g, gm, gms, gram, grams |
 | kg (×1000 g) | kg, kgs, kilo, kilogram(s) |
-| mg (÷1000 g) | mg |
 | lb (×453.592 g) | lb, lbs |
 | oz (×28.3495 g) | oz, when not preceded by `fl` |
 | ml | ml, millilitre(s), milliliter(s) |
 | l (×1000 ml) | l, ltr, ltrs, litre(s), liter(s) |
 | fl oz (×29.5735 ml) | fl oz, fl. oz |
+
+`mg` is not a size unit: on listings it is a dose (`500 mg` tablets), so it is ignored.
 
 Patterns, tried in this order (first confident match wins):
 
@@ -125,7 +130,7 @@ Rejected as **Unknown** (never guessed): ranges (`50-100 ml`), more than one dif
 
 Whether "Pack of 2, 100 g" means 200 g or 100 g each differs between sites. The default is to multiply and show the tooltip. This is validated against real listings during the Amazon phase and the rule is adjusted per adapter if needed.
 
-Confidence: `high` = parsed from title or card text with an unambiguous pattern; `medium` = pack/"+" interpretation or product-page spec; `low` is not shown as a number (it becomes Unknown).
+Confidence: `high` = parsed from the site unit price, size line or title with an unambiguous pattern; `medium` = pack/"+" interpretation or product-page spec; `low` is not shown as a number (it becomes Unknown).
 
 ## 7. Price extraction
 
@@ -144,14 +149,16 @@ Confidence: `high` = parsed from title or card text with an unambiguous pattern;
 
 ## 9. Reordering
 
-- `css-order` (preferred): set `style.order` on each card's `sortNode` when the container is a flex or grid. No nodes are detached, so framework re-renders are less likely to undo it.
-- `dom-move` (fallback): re-insert the sorted nodes at the position of the first card, **not** at the end of the parent. This fixes the old behaviour of pushing cards past banners and pagination.
-- Reset removes the `order` styles or restores recorded original positions.
+- `css-order` (preferred): set `style.order` on each card's `sortNode` when all cards share one flex or grid container. No nodes are detached, so framework re-renders are less likely to undo it. Non-card children (widgets) get odd `order` values so they keep their position between sorted cards. Amazon's `.s-main-slot` is `display: grid` (verified), so Amazon uses this.
+- `dom-slots` (fallback, replaces the earlier `dom-move`): record each card's slot, then fill the slots with the sorted cards, so nothing is pushed past banners or pagination and it works for any container shape. Flipkart renders results as rows of four cards (`div[data-id]` children of a flex row, verified), so CSS `order` cannot reorder across rows and Flipkart uses this.
+- Reset removes the `order` styles (`css-order`) or re-fills the slots in first-seen order (`dom-slots`).
 - Behaviour on React-style SPAs is verified per adapter; an adapter that cannot be made stable stays badge-only and the toolbar says so.
 
 ## 10. Product-page fallback and cache
 
-Used only when title and card text give no quantity.
+Not in plan 1. Coverage measured on live pages was high enough to defer it: Amazon unit price on 45/48, 39/39, 36/36, 48/48, 45/46 and 48/48 priced cards across six queries, and a Flipkart size line on 40/40 cards for the two queries checked in full (shampoo, potato chips). It gets its own plan together with the `storage` permission.
+
+Used only when the site unit price, size line and title give no quantity.
 
 - Fetch runs **from the content script** (same origin as the page), so the extension needs no `host_permissions` and no background worker for it.
 - Parse the response HTML with `DOMParser` for the spec table / variant text, then run `parseQuantity`.
@@ -163,14 +170,14 @@ Used only when title and card text give no quantity.
 
 - **Toolbar**: injected on every supported listing page, fixed position, inside a Shadow DOM so site CSS cannot break it. Shows sort direction, reset, and counts (`ranked / unknown`).
 - **Badge**: Shadow-DOM element per card, `₹450 / 100 ml`, tooltip with the maths and source. Unknown cards show a muted `?` instead of the old `— no size` text on every card.
-- **Delivery note**: shown only when the fee is visible on the card or page (`Delivery ₹30`). Where fees appear only at cart (common on quick-commerce), the badge carries a generic "fees may apply" hint.
+- **Delivery note**: shown only when the fee is visible on the card or page (`Delivery ₹30`). Implemented for Amazon in plan 1 (`₹80 delivery` is visible on cards); Flipkart cards show none. Where fees appear only at cart (common on quick-commerce), the badge will carry a generic "fees may apply" hint when those sites are added.
 - **Popup**: removed in v1; the toolbar replaces it.
 
 ## 12. Decisions recorded
 
 1. **Amazon domain**: amazon.in only.
 2. **Popup**: removed; the injected toolbar is the only UI.
-3. **Commit identity**: GitHub account `Student-Parv` with its noreply address (exact address supplied by the repo owner before the first commit).
+3. **Commit identity**: `Parv Lunia <114015466+Student-Parv@users.noreply.github.com>` (repo-local git config; ID read from the authenticated `gh` CLI).
 
 ## 13. Testing
 
