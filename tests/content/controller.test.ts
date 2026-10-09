@@ -93,6 +93,73 @@ describe('ListingController on the Amazon fixture', () => {
   });
 });
 
+describe('ListingController recovery (late rendering, vanished toolbar, forced refresh)', () => {
+  let c: ListingController;
+  let priceHtml = '';
+  const firstCard = () => document.querySelector(amazon.cardSelector)!;
+  const firstBadge = () => firstCard().querySelector('price-scout-badge')!.shadowRoot!.textContent!;
+  beforeEach(() => {
+    mountFixture('amazon/sunscreen');
+    // Simulate a card whose price has not rendered yet when the extension first sees it.
+    const recipe = firstCard().querySelector('[data-cy="price-recipe"]')!;
+    priceHtml = recipe.innerHTML;
+    recipe.innerHTML = '';
+    c = new ListingController(amazon);
+    c.start();
+  });
+  afterEach(() => c.destroy());
+
+  it('starts as "? size" for the half-rendered card', () => {
+    expect(firstBadge()).toContain('? size');
+  });
+
+  it('picks the card up on a later scan once its price has rendered', () => {
+    firstCard().querySelector('[data-cy="price-recipe"]')!.innerHTML = priceHtml;
+    c.scan();
+    expect(firstBadge()).toContain('₹747 / 100 g');
+    expect(c.status().ranked).toBe(48);
+  });
+
+  it('gives up on a card that stays unknown, but refresh() always tries again', () => {
+    for (let i = 0; i < 10; i++) c.scan();
+    firstCard().querySelector('[data-cy="price-recipe"]')!.innerHTML = priceHtml;
+    c.scan(); // attempts exhausted: automatic scans no longer re-read this card
+    expect(firstBadge()).toContain('? size');
+    c.refresh(); // the user asked: always re-read
+    expect(firstBadge()).toContain('₹747 / 100 g');
+  });
+
+  it('re-sorts after a card resolves while a sort is active', () => {
+    (toolbar()!.shadowRoot!.querySelector('[data-dir="asc"]') as HTMLButtonElement).click();
+    firstCard().querySelector('[data-cy="price-recipe"]')!.innerHTML = priceHtml;
+    c.scan();
+    const cards = Array.from(document.querySelectorAll<HTMLElement>(amazon.cardSelector));
+    const shown = cards.sort((a, b) => Number(a.style.order) - Number(b.style.order));
+    const ranked = shown.map((el) => analyzeCard(amazon.extract(el))).filter((a) => a.state === 'ranked');
+    expect(ranked.map((a) => a.per100!)).toEqual(ranked.map((a) => a.per100!).sort((x, y) => x - y));
+    expect(ranked).toHaveLength(48);
+  });
+
+  it('puts the toolbar back, with its state, if the site removes it', () => {
+    (toolbar()!.shadowRoot!.querySelector('[data-dir="desc"]') as HTMLButtonElement).click();
+    toolbar()!.remove();
+    expect(toolbar()).toBeNull();
+    c.scan();
+    expect(toolbar()).not.toBeNull();
+    expect(toolbar()!.shadowRoot!.querySelector('[data-dir="desc"]')!.getAttribute('aria-pressed')).toBe('true');
+    expect(toolbar()!.shadowRoot!.querySelector('.stats')!.textContent).toMatch(/\d+ ranked/);
+  });
+
+  it('refresh() makes the toolbar flash', () => {
+    c.refresh();
+    expect(toolbar()!.shadowRoot!.querySelector('.bar')!.classList.contains('flash')).toBe(true);
+  });
+
+  it('reports counts', () => {
+    expect(c.status()).toEqual({ cards: 48, ranked: 47, unknown: 1, unavailable: 0 });
+  });
+});
+
 describe('ListingController on the Flipkart fixture', () => {
   let c: ListingController;
   beforeEach(() => {

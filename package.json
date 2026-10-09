@@ -1,17 +1,18 @@
 {
   "name": "price-scout-extension",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "private": true,
   "type": "module",
   "description": "Sort e-commerce listings by price per 100 g / 100 ml.",
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "build": "tsc --noEmit && vite build",
+    "build": "tsc --noEmit && vite build && vite build --mode background",
     "test": "vitest run",
     "test:watch": "vitest",
     "smoke": "node scripts/smoke.mjs"
   },
   "devDependencies": {
+    "@types/chrome": "^0.3.4",
     "@types/node": "^26.6.4",
     "jsdom": "^30.1.2",
     "playwright-core": "^1.64.0",

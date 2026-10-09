@@ -13,7 +13,8 @@ Sorts Amazon.in and Flipkart search results by **price per 100 g / 100 ml**, so 
 - Cards whose size cannot be read are marked `? size` and listed after the ranked ones. Out-of-stock cards go last.
 - Treats 1 ml as 1 g so liquids and solids share one ranking. Badges in the less common unit on a page are marked `≈`.
 - Shows a visible delivery fee on Amazon cards (`Delivery ₹80`).
-- Runs entirely in your browser. No permissions, no accounts, nothing is sent anywhere.
+- Click the extension icon to try again on the current page: it injects the script if the tab was opened before the extension was installed, and shows the value on any page of a supported site that has product cards. The icon shows the number of ranked products for a few seconds.
+- Runs entirely in your browser. The only permissions are `scripting` and access to amazon.in and flipkart.com (the same sites it already runs on). No accounts, nothing is sent anywhere.
 
 ## Supported sites
 Amazon.in (`/s` search pages) and Flipkart (`/search`). More sites are planned; see `docs/superpowers/specs/`.

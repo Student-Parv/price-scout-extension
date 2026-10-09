@@ -3,6 +3,9 @@ import type { SortDir } from '../core/rank';
 export interface Toolbar {
   setStats(s: { ranked: number; unknown: number; unavailable: number }): void;
   setActive(dir: SortDir | null): void;
+  /** Pulses the toolbar so the user sees that a click on the extension icon did something. */
+  flash(): void;
+  isConnected(): boolean;
   destroy(): void;
 }
 
@@ -17,6 +20,8 @@ button { font: inherit; border: 1px solid #0b5d1e; background: #fff; color: #0b5
 button[aria-pressed="true"] { background: #0b5d1e; color: #fff; }
 button.reset { border-color: #888; color: #444; }
 .stats { flex-basis: 100%; font-size: 11px; color: #555; }
+@keyframes pulse { from { box-shadow: 0 0 0 0 rgba(11,93,30,.65); } to { box-shadow: 0 0 0 16px rgba(11,93,30,0); } }
+.bar.flash { animation: pulse .7s ease-out 2; }
 `;
 
 export function mountToolbar(onSort: (dir: SortDir | null) => void): Toolbar {
@@ -51,11 +56,17 @@ export function mountToolbar(onSort: (dir: SortDir | null) => void): Toolbar {
   }
   document.documentElement.append(host);
 
+  const bar = root.querySelector('.bar')!;
   return {
     setStats: (s) => {
       stats.textContent = `${s.ranked} ranked · ${s.unknown} unknown size · ${s.unavailable} unavailable`;
     },
     setActive,
+    flash: () => {
+      bar.classList.add('flash');
+      setTimeout(() => bar.classList.remove('flash'), 1500);
+    },
+    isConnected: () => host.isConnected,
     destroy: () => host.remove(),
   };
 }

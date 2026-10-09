@@ -3,9 +3,13 @@ import { analyzeCard } from '../core/analyze';
 import { formatPer100 } from '../core/format';
 import { dominantDim, sortOrder, type SortDir } from '../core/rank';
 import type { CardAnalysis, RawCard } from '../core/types';
+import type { RetryStatus } from '../shared';
 import { attachBadge, createBadge, updateBadge, type BadgeView } from './badge';
 import { createReorderer, type Reorderer } from './reorder';
 import { mountToolbar, type Toolbar } from './toolbar';
+
+/** How many times automatic scans re-read a card that is not ranked yet (it may still be rendering). */
+const MAX_AUTO_ATTEMPTS = 6;
 
 interface Entry {
   card: HTMLElement;
@@ -13,6 +17,7 @@ interface Entry {
   raw: RawCard;
   analysis: CardAnalysis;
   badge: HTMLElement;
+  attempts: number;
 }
 
 export class ListingController {
@@ -27,30 +32,23 @@ export class ListingController {
   }
 
   start(): void {
-    this.toolbar = mountToolbar((dir) => this.setSort(dir));
-    this.scan();
+    this.toolbar = this.mountToolbar();
+    this.update(false);
   }
 
+  /** Automatic pass: pick up new cards, re-read cards that were still rendering, repair the UI. */
   scan(): void {
-    this.entries = this.entries.filter((e) => e.card.isConnected);
-    let added = false;
-    for (const el of Array.from(document.querySelectorAll(this.adapter.cardSelector))) {
-      if (this.seen.has(el)) continue;
-      this.seen.add(el);
-      const card = el as HTMLElement;
-      const raw = this.adapter.extract(card);
-      const analysis = analyzeCard(raw);
-      const badge = createBadge({ text: '', sub: null, tooltip: '', muted: true });
-      attachBadge(card, badge);
-      this.entries.push({ card, node: this.adapter.sortNode(card), raw, analysis, badge });
-      added = true;
-    }
-    for (const e of this.entries) if (!e.badge.isConnected) attachBadge(e.card, e.badge);
-    if (added) {
-      this.refreshBadges();
-      this.toolbar?.setStats(this.stats());
-      if (this.dir) this.applySort();
-    }
+    this.update(false);
+  }
+
+  /** The user clicked the extension icon: re-read everything that is not ranked, repair the UI, pulse the toolbar. */
+  refresh(): void {
+    this.update(true);
+    this.toolbar?.flash();
+  }
+
+  status(): RetryStatus {
+    return { cards: this.entries.length, ...this.stats() };
   }
 
   setSort(dir: SortDir | null): void {
@@ -67,6 +65,55 @@ export class ListingController {
     this.toolbar?.destroy();
     this.toolbar = null;
     this.dir = null;
+  }
+
+  private mountToolbar(): Toolbar {
+    const toolbar = mountToolbar((dir) => this.setSort(dir));
+    toolbar.setActive(this.dir);
+    toolbar.setStats(this.stats());
+    return toolbar;
+  }
+
+  private update(force: boolean): void {
+    this.entries = this.entries.filter((e) => e.card.isConnected);
+    if (this.toolbar && !this.toolbar.isConnected()) this.toolbar = this.mountToolbar();
+
+    let changed = this.reanalyse(force);
+    for (const el of Array.from(document.querySelectorAll(this.adapter.cardSelector))) {
+      if (this.seen.has(el)) continue;
+      this.seen.add(el);
+      const card = el as HTMLElement;
+      const raw = this.adapter.extract(card);
+      const badge = createBadge({ text: '', sub: null, tooltip: '', muted: true });
+      attachBadge(card, badge);
+      this.entries.push({ card, node: this.adapter.sortNode(card), raw, analysis: analyzeCard(raw), badge, attempts: 1 });
+      changed = true;
+    }
+    for (const e of this.entries) if (!e.badge.isConnected) attachBadge(e.card, e.badge);
+
+    if (changed) {
+      this.refreshBadges();
+      this.toolbar?.setStats(this.stats());
+      if (this.dir) this.applySort();
+    }
+  }
+
+  /** Re-reads cards that are not ranked; returns true when any of them changed. */
+  private reanalyse(force: boolean): boolean {
+    let changed = false;
+    for (const e of this.entries) {
+      if (e.analysis.state === 'ranked') continue;
+      if (!force && e.attempts >= MAX_AUTO_ATTEMPTS) continue;
+      e.attempts++;
+      const raw = this.adapter.extract(e.card);
+      const analysis = analyzeCard(raw);
+      if (analysis.state !== e.analysis.state || analysis.per100 !== e.analysis.per100) {
+        e.raw = raw;
+        e.analysis = analysis;
+        changed = true;
+      }
+    }
+    return changed;
   }
 
   private applySort(): void {

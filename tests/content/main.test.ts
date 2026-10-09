@@ -5,8 +5,9 @@ describe('boot loop', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     vi.resetModules();
-    document.documentElement.removeAttribute('data-price-scout');
     document.body.innerHTML = '';
+    // toolbars are attached to <html>, so clearing <body> does not remove ones left by earlier tests
+    document.querySelectorAll('price-scout-toolbar').forEach((e) => e.remove());
   });
   afterEach(() => {
     vi.useRealTimers();
@@ -39,5 +40,34 @@ describe('boot loop', () => {
     expect(document.querySelectorAll('price-scout-toolbar')).toHaveLength(0);
     tick(new URL('https://www.amazon.in/s?k=shampoo'));
     expect(document.querySelectorAll('price-scout-toolbar')).toHaveLength(1);
+  });
+
+  it('does not show on a non-search page by itself, but retry() forces it when cards are there', async () => {
+    const { tick, retry } = await import('../../src/content/main');
+    mountFixture('amazon/sunscreen');
+    const bestsellers = new URL('https://www.amazon.in/gp/bestsellers/beauty');
+    tick(bestsellers);
+    expect(document.querySelectorAll('price-scout-badge')).toHaveLength(0);
+    const status = retry(bestsellers);
+    expect(status.cards).toBe(48);
+    expect(status.ranked).toBeGreaterThan(40);
+    expect(document.querySelectorAll('price-scout-toolbar')).toHaveLength(1);
+    // and it keeps scanning that page afterwards
+    tick(bestsellers);
+    expect(document.querySelectorAll('price-scout-toolbar')).toHaveLength(1);
+  });
+
+  it('retry() on a page with no cards reports zero and shows nothing', async () => {
+    const { retry } = await import('../../src/content/main');
+    document.body.innerHTML = '<p>no products here</p>';
+    expect(retry(new URL('https://www.amazon.in/gp/help'))).toEqual({ cards: 0, ranked: 0, unknown: 0, unavailable: 0 });
+    expect(document.querySelectorAll('price-scout-toolbar')).toHaveLength(0);
+  });
+
+  it('retry() on an unsupported site reports zero cards', async () => {
+    const { retry } = await import('../../src/content/main');
+    mountFixture('amazon/sunscreen');
+    expect(retry(new URL('https://example.com/s?k=x')).cards).toBe(0);
+    expect(document.querySelectorAll('price-scout-badge')).toHaveLength(0);
   });
 });
