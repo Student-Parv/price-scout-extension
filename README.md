@@ -1,37 +1,39 @@
-# Price Scout — Value-for-Money Price Tracker & Extension
+# Price Scout
 
 ![GitHub stars](https://img.shields.io/github/stars/Student-Parv/price-scout-extension?style=social)
 ![License](https://img.shields.io/github/license/Student-Parv/price-scout-extension)
 ![Issues](https://img.shields.io/github/issues/Student-Parv/price-scout-extension)
 
-Price Scout helps shoppers find value-for-money products across marketplaces (Amazon, Flipkart and more). It surfaces cheaper alternatives, tracks prices, highlights value scores and makes it effortless to spot deals.
+Sorts Amazon.in and Flipkart search results by **price per 100 g / 100 ml**, so the best value for money comes first instead of the lowest sticker price.
 
-Why this repo matters
-- Built for deal-hunters, researchers, and bargain shoppers.
-- Easy install: load as an unpacked browser extension and start browsing.
-- Lightweight, privacy-first, no account required.
+## What it does
+- Adds a badge to every result, for example `₹747 / 100 g`. Hover it to see the maths.
+- Adds a small toolbar (bottom-right): **Best value first**, **Priciest first**, **Reset**.
+- Reads the size from Amazon's own unit price when it is shown, from Flipkart's size line, or from the title (`2 x 50 g`, `Pack of 3`, `1.5 L`, `100 ml + 50 ml free`).
+- Cards whose size cannot be read are marked `? size` and listed after the ranked ones. Out-of-stock cards go last.
+- Treats 1 ml as 1 g so liquids and solids share one ranking. Badges in the less common unit on a page are marked `≈`.
+- Shows a visible delivery fee on Amazon cards (`Delivery ₹80`).
+- Runs entirely in your browser. No permissions, no accounts, nothing is sent anywhere.
 
-Features
-- Real-time price highlights on product pages
-- Compare alternative sellers and historical price hints
-- Customizable price-threshold alerts
-- Exportable reports and lightweight popup UI
+## Supported sites
+Amazon.in (`/s` search pages) and Flipkart (`/search`). More sites are planned; see `docs/superpowers/specs/`.
 
-Quick install (Chrome / Edge / Brave)
-1. Open `chrome://extensions/` (or browser equivalent)
-2. Enable "Developer mode"
-3. Click "Load unpacked" and select this repository folder
-4. Open a product page on Amazon / Flipkart and click the Price Scout popup
+## Install (Chrome, Brave, Edge)
+1. `npm ci && npm run build`
+2. Open `chrome://extensions` and turn on **Developer mode**.
+3. Click **Load unpacked** and choose the `dist` folder.
 
-Usage
-- Click the extension icon to view scores and alternatives.
-- Adjust settings in the popup to tune score thresholds.
+## Develop
+- `npm test`: unit and fixture tests (parser, adapters, reordering, controller).
+- `npm run build`: type-check and bundle to `dist/`.
+- `npm run smoke`: loads the bundle on live Amazon.in and Flipkart pages with Brave and checks sort, reverse and reset.
 
-Contributing
-Please read [CONTRIBUTING](CONTRIBUTING.md) to get started — issues, PRs and stars are all appreciated.
+Design: `docs/superpowers/specs/`. Plans: `docs/superpowers/plans/`.
 
-License
-This project is MIT licensed — see the [LICENSE](LICENSE) file.
+## Limitations
+- Mass and volume are compared as if 1 ml = 1 g, which is wrong for oils, honey and gels.
+- Only the cards on the current page are ranked; use the site's page links to see more.
+- Site markup changes can break an adapter. The saved pages in `tests/fixtures` show what each adapter expects.
+- `mg` is ignored as a size (it is a dose, not a pack size).
 
-Get involved
-- Star the repo, open issues for feature requests, and submit PRs.
+MIT licensed.

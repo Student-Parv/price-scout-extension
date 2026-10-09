@@ -12,5 +12,8 @@ Community guidelines
 - Follow the Code of Conduct in `CODE_OF_CONDUCT.md`.
 
 Development
-- Load the extension unpacked in your browser (see README).
-- Run linters and tests before opening a PR.
+- `npm ci`, then `npm test` and `npm run build`.
+- Load `dist/` as an unpacked extension (see README).
+- A new site is one file in `src/adapters/` plus a trimmed saved page in `tests/fixtures/<site>/` (`node scripts/trim-fixture.mjs saved.html tests/fixtures/<site>/<query>.html`) and a test next to the existing adapter tests.
+- Parser changes need a row in `tests/core/quantity.test.ts`.
+- `npm run smoke` checks the built bundle on live Amazon.in and Flipkart pages with Brave.

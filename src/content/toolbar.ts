@@ -22,7 +22,8 @@ button.reset { border-color: #888; color: #444; }
 export function mountToolbar(onSort: (dir: SortDir | null) => void): Toolbar {
   document.querySelectorAll('price-scout-toolbar').forEach((e) => e.remove());
   const host = document.createElement('price-scout-toolbar');
-  host.style.cssText = 'position:fixed;top:12px;right:12px;z-index:2147483646;';
+  // Bottom-right: the top-right corner holds each site's cart and account links.
+  host.style.cssText = 'position:fixed;bottom:16px;right:16px;z-index:2147483646;';
   const root = host.attachShadow({ mode: 'open' });
   root.innerHTML = `
     <style>${STYLE}</style>
