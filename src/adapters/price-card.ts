@@ -30,15 +30,27 @@ interface Run {
   el: Element;
 }
 
-/** Every non-empty piece of text in the card with the element it sits in (text may share an element with an icon). */
+/**
+ * Every non-empty piece of text in the card with the element it sits in (text may share an element with an icon).
+ * Adjacent text nodes are joined: React writes "₹" and "99" as two nodes, which a saved page would merge.
+ */
 function textRuns(card: Element): Run[] {
   const walker = card.ownerDocument.createTreeWalker(card, 4 /* SHOW_TEXT */);
-  const runs: Run[] = [];
+  const raw: { node: Node; text: string; el: Element }[] = [];
   for (let n = walker.nextNode(); n; n = walker.nextNode()) {
-    const text = (n.textContent ?? '').replace(/\s+/g, ' ').trim();
-    if (text && n.parentElement) runs.push({ text, el: n.parentElement });
+    if (n.parentElement) raw.push({ node: n, text: n.textContent ?? '', el: n.parentElement });
   }
-  return runs;
+  const joined: { text: string; el: Element }[] = [];
+  let last: Node | null = null;
+  for (const r of raw) {
+    const previous = joined[joined.length - 1];
+    if (previous && last !== null && r.node.previousSibling === last) previous.text += r.text;
+    else joined.push({ text: r.text, el: r.el });
+    last = r.node;
+  }
+  return joined
+    .map((r) => ({ text: r.text.replace(/\s+/g, ' ').trim(), el: r.el }))
+    .filter((r) => r.text);
 }
 
 /**

@@ -28,10 +28,11 @@ Sorts Amazon.in, Flipkart (including Flipkart Minutes), DMart, Blinkit, Zepto, B
 | Zepto | search (`/search`) | Packs that list two weights ("48 g or 58 g") stay unknown instead of being guessed. |
 | BigBasket | search (`/ps/`) | |
 | Swiggy Instamart | search (`/instamart/search`) | The site draws the ₹ with CSS; prices are read as plain numbers. |
+| Amazon Now | search (`/tez/browse/search`) | **Unverified**: the page only shows products to a signed-in account, so it has not been seen yet. |
 
 On any other page of these sites that shows product cards, click the extension icon to show the badges.
 
-**Not supported yet:** Amazon Now (no web entry point found), JioMart (its search page did not load for me), Nykaa, Tira, 1mg, PharmEasy. Sites that block automated browsers can still be added: see "Adding a site" in `CONTRIBUTING.md`.
+**Not supported yet:** JioMart (its search page did not load for me), Nykaa, Tira, 1mg, PharmEasy. Sites that block automated browsers can still be added: see "Adding a site" in `CONTRIBUTING.md`.
 
 ## Install (Chrome, Brave, Edge)
 1. `npm ci && npm run build`

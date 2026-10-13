@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Price Scout",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "Rank Amazon.in, Flipkart (incl. Minutes), DMart, Blinkit, Zepto, BigBasket and Swiggy Instamart results by price per 100 g / 100 ml. Click the icon to try again on any page.",
   "icons": {
     "16": "icons/icon-16.png",

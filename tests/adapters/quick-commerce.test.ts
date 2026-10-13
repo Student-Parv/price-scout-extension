@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { pickAdapter } from '../../src/adapters';
+import { amazon } from '../../src/adapters/amazon';
+import { amazonNow } from '../../src/adapters/amazon-now';
 import { bigbasket } from '../../src/adapters/bigbasket';
 import { blinkit } from '../../src/adapters/blinkit';
 import { instamart } from '../../src/adapters/instamart';
@@ -145,5 +147,17 @@ describe('instamart: prices are bare numbers', () => {
     const raw = instamart.extract(instamart.findCards(document)[0]);
     expect(raw.priceText).toBe('237');
     expect(raw.sizeText).toBe('30 g');
+  });
+});
+
+describe('amazon now (unverified markup)', () => {
+  const now = new URL('https://www.amazon.in/tez/browse/search?qcbrand=qqfsWw9RkO&searchKeyword=body%2520wash');
+  it('is picked for its search pages, and the normal Amazon adapter keeps /s', () => {
+    expect(pickAdapter(now)).toBe(amazonNow);
+    expect(amazonNow.isListingPage(now)).toBe(true);
+    expect(amazonNow.isListingPage(new URL('https://www.amazon.in/tez/browse'))).toBe(false);
+    const normal = new URL('https://www.amazon.in/s?k=body+wash');
+    expect(pickAdapter(normal)).toBe(amazon);
+    expect(amazonNow.matches(normal)).toBe(false);
   });
 });
