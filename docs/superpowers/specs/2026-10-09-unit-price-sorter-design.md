@@ -212,3 +212,20 @@ Each phase is independently releasable.
 - Product-page fetch moves from a background worker to the content script (smaller permission surface).
 - Reorder `dom-move` fallback re-inserts at the first card's position (fixes the old end-of-parent behaviour).
 - The popup is removed (confirmed).
+
+## 17. Quick-commerce findings (2026-10-13)
+
+Probed with headless Brave and a granted geolocation:
+
+| Site | Result | Status |
+|---|---|---|
+| Flipkart Minutes | Loads once the location is serviceable (Bengaluru worked, Mumbai coordinates were "not serviceable"). React Native Web: generated class names, cards in rows of four, struck old price, size line `30 g, 50`. First row's document order differs from the drawn order. | **Built and verified live** (`flipkart-minutes` adapter) |
+| DMart | Loads in Mumbai; not in Bengaluru (no products). Tailwind markup; `₹` and the number in separate spans; struck MRP and a "₹194 OFF" badge. Printed unit price is rounded to 2 decimals and wrong on some cards. | **Built and verified live** (`dmart` adapter) |
+| Blinkit | "Access denied, you have been blocked" | Blocked: needs a page saved in a real browser |
+| Zepto | HTTP 429 | Blocked |
+| Swiggy Instamart | "We'll be back shortly" page | Blocked |
+| BigBasket, JioMart | HTTP 403 (Akamai) | Blocked |
+| Flipkart Grocery | Needs a verified pincode; a typed pincode (560001) loaded but with very few cards | Not built |
+| Amazon Now | No web entry point found on amazon.in's homepage or in public reports (described as app-based) | Not built |
+
+Design consequences: `SiteAdapter.findCards` replaces the CSS-selector-only lookup; `findCardsByPrice` finds cards on generated-class pages; `dom-slots` now fills positions in drawn order (row, then left to right) and Reset restores the original arrangement.

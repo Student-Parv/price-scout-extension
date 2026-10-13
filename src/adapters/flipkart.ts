@@ -1,14 +1,15 @@
-import type { SiteAdapter } from './types';
+import type { SelectorAdapter } from './types';
 import { clean } from './types';
 
 const PRICE_LEAF = /^₹\s?\d[\d,]*(\.\d+)?$/;
 const SOLD_OUT = /sold out|currently unavailable|out of stock/i;
 
-export const flipkart: SiteAdapter = {
+export const flipkart: SelectorAdapter = {
   id: 'flipkart',
   matches: (url) => url.hostname === 'www.flipkart.com' || url.hostname === 'flipkart.com',
   isListingPage: (url) => url.pathname === '/search',
   cardSelector: 'div[data-id]',
+  findCards: (doc) => Array.from(doc.querySelectorAll(flipkart.cardSelector)),
   sortNode: (card) => card,
   reorder: 'dom-slots',
 

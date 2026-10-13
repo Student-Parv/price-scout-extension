@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Price Scout",
-  "version": "0.5.0",
-  "description": "Rank Amazon.in and Flipkart search results by price per 100 g / 100 ml. Click the icon to try again on any page.",
+  "version": "0.6.0",
+  "description": "Rank Amazon.in, Flipkart (incl. Minutes) and DMart search results by price per 100 g / 100 ml. Click the icon to try again on any page.",
   "icons": {
     "16": "icons/icon-16.png",
     "32": "icons/icon-32.png",
@@ -23,11 +23,23 @@
   },
   "content_scripts": [
     {
-      "matches": ["*://www.amazon.in/*", "*://www.flipkart.com/*"],
-      "js": ["content.js"],
+      "matches": [
+        "*://www.amazon.in/*",
+        "*://www.flipkart.com/*",
+        "*://www.dmart.in/*"
+      ],
+      "js": [
+        "content.js"
+      ],
       "run_at": "document_idle"
     }
   ],
-  "permissions": ["scripting"],
-  "host_permissions": ["*://www.amazon.in/*", "*://www.flipkart.com/*"]
+  "permissions": [
+    "scripting"
+  ],
+  "host_permissions": [
+    "*://www.amazon.in/*",
+    "*://www.flipkart.com/*",
+    "*://www.dmart.in/*"
+  ]
 }

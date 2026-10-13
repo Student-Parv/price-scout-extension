@@ -1,13 +1,14 @@
-import type { SiteAdapter } from './types';
+import type { SelectorAdapter } from './types';
 import { clean } from './types';
 
 const DELIVERY_RE = /₹\s*([\d,]+)\s+delivery/i;
 
-export const amazon: SiteAdapter = {
+export const amazon: SelectorAdapter = {
   id: 'amazon',
   matches: (url) => url.hostname === 'www.amazon.in' || url.hostname === 'amazon.in',
   isListingPage: (url) => url.pathname === '/s',
   cardSelector: '[data-component-type="s-search-result"][data-asin]:not([data-asin=""])',
+  findCards: (doc) => Array.from(doc.querySelectorAll(amazon.cardSelector)),
   sortNode: (card) => card,
   reorder: 'css-order',
 

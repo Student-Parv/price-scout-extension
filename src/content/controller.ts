@@ -79,7 +79,7 @@ export class ListingController {
     if (this.toolbar && !this.toolbar.isConnected()) this.toolbar = this.mountToolbar();
 
     let changed = this.reanalyse(force);
-    for (const el of Array.from(document.querySelectorAll(this.adapter.cardSelector))) {
+    for (const el of this.adapter.findCards(document)) {
       if (this.seen.has(el)) continue;
       this.seen.add(el);
       const card = el as HTMLElement;

@@ -24,7 +24,7 @@ export function tick(url: URL = new URL(location.href), force = false): void {
   }
   const adapter = pickAdapter(url);
   if (!adapter) return;
-  if (!adapter.isListingPage(url) && !(force && document.querySelector(adapter.cardSelector))) return;
+  if (!adapter.isListingPage(url) && !(force && adapter.findCards(document).length > 0)) return;
   controller = new ListingController(adapter);
   controller.start();
 }

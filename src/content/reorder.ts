@@ -36,22 +36,53 @@ function cssOrder(): Reorderer {
   };
 }
 
+const ROW_TOLERANCE_PX = 8;
+
+const byDocument = (a: Element, b: Element) =>
+  a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1;
+
+/**
+ * The nodes in the order they are drawn: row by row, left to right. On some sites (Flipkart Minutes) the
+ * document order differs from the drawn order, e.g. the first row's leftmost card is last in the document.
+ * Without layout (hidden nodes, tests) it falls back to document order.
+ */
+function visualOrder(nodes: Element[]): Element[] {
+  const rects = new Map(nodes.map((n) => [n, n.getBoundingClientRect()] as const));
+  const laidOut = nodes.every((n) => rects.get(n)!.width > 0 || rects.get(n)!.height > 0);
+  if (!laidOut) return [...nodes].sort(byDocument);
+  return [...nodes].sort((a, b) => {
+    const ra = rects.get(a)!;
+    const rb = rects.get(b)!;
+    if (Math.abs(ra.top - rb.top) > ROW_TOLERANCE_PX) return ra.top - rb.top;
+    return ra.left - rb.left || byDocument(a, b);
+  });
+}
+
 function domSlots(): Reorderer {
+  /** Where each node was drawn before we first moved anything; Reset puts them back there. */
+  const original = new Map<Element, number>();
+
   const apply: Reorderer['apply'] = (nodes, order) => {
-    const inDom = [...nodes].sort((a, b) =>
-      a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1,
-    );
-    const slots = inDom.map((node) => {
-      const marker = document.createComment('');
-      node.before(marker);
-      return marker;
-    });
+    const seen = visualOrder(nodes);
+    for (const node of seen) if (!original.has(node)) original.set(node, original.size);
+
+    // One placeholder in front of each node; slot p is the p-th position on screen.
+    const slotOf = new Map(seen.map((node) => [node, document.createComment('')] as const));
+    for (const [node, marker] of slotOf) node.before(marker);
+    const slots = seen.map((node) => slotOf.get(node)!);
+
     order.forEach((nodeIndex, position) => slots[position].after(nodes[nodeIndex]));
     slots.forEach((marker) => marker.remove());
   };
+
   return {
     apply,
-    reset: (nodes) => apply(nodes, nodes.map((_, i) => i)),
+    reset(nodes) {
+      if (original.size === 0) return;
+      const rank = (n: Element) => original.get(n) ?? Number.MAX_SAFE_INTEGER;
+      const order = nodes.map((_, i) => i).sort((a, b) => rank(nodes[a]) - rank(nodes[b]) || a - b);
+      apply(nodes, order);
+    },
   };
 }
 

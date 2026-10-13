@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createReorderer } from '../../src/content/reorder';
 
 const texts = (root: Element) => Array.from(root.querySelectorAll('i')).map((e) => e.textContent);
@@ -70,5 +70,42 @@ describe('dom-slots reorderer', () => {
     r.reset(nodes);
     expect(texts(rows()[0])).toEqual(['A', 'B']);
     expect(texts(rows()[1])).toEqual(['C', 'D']);
+  });
+});
+
+describe('dom-slots reorderer when the drawn order differs from the document order', () => {
+  // Flipkart Minutes: the first row is [400, 700, 1000, 100] in the document, i.e. the leftmost card comes last.
+  let nodes: HTMLElement[];
+  // Where the browser draws whatever sits at each document position (this follows the node when it moves).
+  const SPOTS = [[65, 400], [65, 700], [65, 1000], [65, 100], [489, 100], [489, 400]];
+  const draw = (el: HTMLElement) => {
+    const [top, left] = SPOTS[Array.from(el.parentElement!.children).indexOf(el)];
+    return { top, left, width: 100, height: 100, right: left + 100, bottom: top + 100, x: left, y: top, toJSON: () => ({}) };
+  };
+  beforeEach(() => {
+    document.body.innerHTML = '<div id="g"><i>A</i><i>B</i><i>C</i><i>D</i><i>E</i><i>F</i></div>';
+    nodes = Array.from(document.querySelectorAll('i'));
+    nodes.forEach((el) => vi.spyOn(el, 'getBoundingClientRect').mockImplementation(() => draw(el)));
+  });
+  const dom = () => Array.from(document.querySelectorAll('i')).map((e) => e.textContent).join('');
+
+  it('treats slot 0 as the top-left card (D), not the first in the document (A)', () => {
+    // show on screen, left to right: C B A D | F E   (screen slots are D A B C | E F)
+    createReorderer('dom-slots').apply(nodes, [2, 1, 0, 3, 5, 4]);
+    // D's old spot (document index 3) now holds C; A's spot holds B; B's spot holds A; C's spot holds D; ...
+    expect(dom()).toBe('BADCFE');
+  });
+
+  it('reset restores the original arrangement', () => {
+    const r = createReorderer('dom-slots');
+    r.apply(nodes, [5, 4, 3, 2, 1, 0]);
+    r.apply(nodes, [2, 1, 0, 3, 5, 4]);
+    r.reset(nodes);
+    expect(dom()).toBe('ABCDEF');
+  });
+
+  it('reset before any sort changes nothing', () => {
+    createReorderer('dom-slots').reset(nodes);
+    expect(dom()).toBe('ABCDEF');
   });
 });
