@@ -1,6 +1,6 @@
 {
   "name": "price-scout-extension",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "private": true,
   "type": "module",
   "description": "Sort e-commerce listings by price per 100 g / 100 ml.",

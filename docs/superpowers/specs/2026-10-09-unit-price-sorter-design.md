@@ -229,3 +229,18 @@ Probed with headless Brave and a granted geolocation:
 | Amazon Now | No web entry point found on amazon.in's homepage or in public reports (described as app-based) | Not built |
 
 Design consequences: `SiteAdapter.findCards` replaces the CSS-selector-only lookup; `findCardsByPrice` finds cards on generated-class pages; `dom-slots` now fills positions in drawn order (row, then left to right) and Reset restores the original arrangement.
+
+### 17b. Update (2026-10-13, later): the blocks were aimed at headless browsers
+
+A normal headed Brave (no `--enable-automation`, `navigator.webdriver` false) with only a debugging port open was **not** blocked by Blinkit, Zepto, BigBasket or Instamart; the earlier refusals were responses to a headless browser. No stealth tooling was used or installed. Results:
+
+| Site | Status |
+|---|---|
+| Blinkit | Built; fixtures for 3 queries; live check on the real extension: sort, reverse, reset correct |
+| BigBasket | Built; fixtures for 3 queries; live check correct (the page error seen is BigBasket's own code: every `addEventListener` call in the extension is on `window`, `document` or a toolbar button) |
+| Swiggy Instamart | Built (prices are bare numbers, ₹ drawn by CSS; cards found from `data-testid`); live check correct |
+| Zepto | Built (uses `data-slot-id` hooks); 60-card fixtures for 3 queries. Live end-to-end check not completed: Zepto answered with an empty 202 challenge page after repeated requests, so I stopped. |
+| JioMart | Not built: its search URL returned "We couldn't find the page" in a normal browser; the homepage loads |
+| Amazon Now | Not built: no web entry point found |
+
+Shared card shape: `priceCardAdapter` (title, size line, struck old price, selling price) covers Flipkart Minutes, Blinkit, Zepto, BigBasket and Instamart. Size and title are read from text nodes, because on Blinkit the size shares an element with a dropdown icon.
